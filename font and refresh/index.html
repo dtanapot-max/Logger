@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="th" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Factory CSS Offline Font Refresh Test</title>
+
+  <link rel="preload" href="fonts/inter-latin-variable.woff2" as="font" type="font/woff2">
+  <link rel="preload" href="fonts/sarabun-400-thai.woff2" as="font" type="font/woff2">
+  <link rel="preload" href="fonts/sarabun-600-thai.woff2" as="font" type="font/woff2">
+  <link rel="preload" href="fonts/sarabun-700-thai.woff2" as="font" type="font/woff2">
+
+  <link rel="stylesheet" href="factory-screen.css">
+</head>
+<body>
+
+  <main id="loginView">
+    <section class="card">
+      <div class="text-center">
+        <h1 class="text-title">ทดสอบ Refresh + Offline Font</h1>
+        <p class="text-muted">หน้าใช้งาน Inter + Sarabun จากไฟล์ local</p>
+      </div>
+
+      <div class="message-box">
+        โหลดหน้าครั้งนี้:
+        <strong id="loadedAt">--:--:--</strong>
+      </div>
+
+      <div class="message-box">
+        เวลาปัจจุบัน:
+        <strong id="currentTime">--:--:--</strong>
+      </div>
+
+      <div class="message-box">
+        Refresh count ใน session นี้:
+        <strong id="refreshCount">0</strong>
+      </div>
+    </section>
+  </main>
+
+  <script src="refresh-test.js"></script>
+</body>
+</html>

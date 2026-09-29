@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Logger — Pure JavaScript + CSS</title>
+  <link rel="stylesheet" href="logger.css">
+  <script src="logger.js" defer></script>
+</head>
+<body class="log-demo">
+  <main>
+    <header>
+      <span class="demo-tag">VANILLA LOGGER / NO DEPENDENCIES</span>
+      <h1>Logger เล็ก ๆ<br>ใช้ร่วมกันได้ทุกหน้าเว็บ</h1>
+      <p class="demo-lead">JavaScript ธรรมดา + CSS ธรรมดา พร้อมแถบ log ด้านล่างจอ
+        เปิดไฟล์นี้ได้ทันที ไม่ต้องติดตั้งแพ็กเกจ ไม่ต้อง build และไม่ต้องเชื่อมต่ออินเทอร์เน็ต</p>
+    </header>
+
+    <section class="demo-card" aria-labelledby="try-title">
+      <h2 id="try-title">01 / ลองใช้งาน</h2>
+      <p>กดปุ่มเพื่อเพิ่มรายการ แล้วกด <strong>[ขยาย]</strong> ที่แถบล่าง
+        เลือกระดับเพื่อกรอง หรือลากขอบบนเพื่อปรับความสูง</p>
+      <div class="demo-actions" id="demo-actions">
+        <button type="button" data-level="info">เพิ่ม Info</button>
+        <button type="button" data-level="success">เพิ่ม Success</button>
+        <button type="button" data-level="warn">เพิ่ม Warning</button>
+        <button type="button" data-level="error">เพิ่ม Error</button>
+        <button type="button" data-level="debug">เพิ่ม Debug</button>
+        <button type="button" id="demo-burst">ทดสอบ 250 รายการ</button>
+      </div>
+      <p><small>เริ่มต้นพับเก็บ • เก็บล่าสุด 200 รายการ • ตัวเลขนับเฉพาะรายการที่ยังเก็บอยู่</small></p>
+    </section>
+
+    <section class="demo-card" aria-labelledby="use-title">
+      <h2 id="use-title">02 / นำไปใช้กับหน้าอื่น</h2>
+      <p>คัดลอก <code>logger.js</code> และ <code>logger.css</code> ไปไว้ด้วยกัน
+        แล้วเพิ่มโค้ดนี้ในหน้า HTML ของคุณ Logger จะสร้างแถบให้เอง</p>
+      <pre><code>&lt;!-- ใน &lt;head&gt; --&gt;
+&lt;link rel="stylesheet" href="logger.css"&gt;
+&lt;script src="logger.js" defer&gt;&lt;/script&gt;
+
+&lt;!-- ก่อน &lt;/body&gt; หรือในไฟล์ JS ของแอป --&gt;
+&lt;script&gt;
+document.addEventListener('DOMContentLoaded', function () {
+  Logger.init();
+  Logger.info('APP', 'เริ่มทำงานแล้ว');
+  Logger.success('SAVE', 'บันทึกสำเร็จ', { id: 42 });
+});
+&lt;/script&gt;</code></pre>
+      <p>ใช้ <code>Logger.init()</code> หลังมี <code>document.body</code> แล้ว
+        เรียกซ้ำได้โดยไม่สร้างแถบซ้อน ส่วนรายการที่เขียนก่อน init จะรอแสดงเมื่อสร้างแถบ</p>
+      <pre><code>Logger.info('APP', 'เปิดหน้ารายการ');
+Logger.warn('API', 'ตอบกลับช้า', { ms: 1200 });
+Logger.error('SAVE', 'บันทึกไม่สำเร็จ', new Error('Example'));
+Logger.success('SAVE', 'บันทึกสำเร็จ', { id: 42 });
+Logger.debug('FORM', 'ค่าระหว่างทำงาน', { dirty: true });
+
+// รูปแบบกลาง: category, level, message, meta
+Logger.log('API', 'info', 'โหลดข้อมูลแล้ว', { count: 12 });</code></pre>
+      <p><code>category</code> ตั้งเองได้ ไม่ผูกกับระบบใด
+        ข้อความและข้อมูลจะแสดงเป็นข้อความ ไม่ตีความเป็น HTML
+        รองรับ Error, BigInt และ object ที่อ้างวนกัน</p>
+    </section>
+
+    <section class="demo-card" aria-labelledby="api-title">
+      <h2 id="api-title">03 / ตั้งค่าและเรียกใช้</h2>
+      <pre><code>Logger.init({
+  max: 200,          // เก็บ 1–2000 รายการ ล่าสุดอยู่ท้าย
+  open: false,       // เริ่มพับเก็บ
+  height: 240,       // ความสูงรายการ ปรับให้พอดีกับจอ
+  persist: false,    // true = จำ log และหน้าตาด้วย localStorage
+  key: 'myapp.logs', // แยกข้อมูลแต่ละแอปเมื่อเปิด persist
+  snapshot: () =&gt; ({ page: 'orders', pending: 2 })
+});</code></pre>
+      <p>ตั้งค่าครั้งแรกเท่านั้น หากต้องการเปลี่ยนให้เรียก <code>Logger.destroy()</code> แล้ว init ใหม่
+        เมื่อเปิด persist จะใช้ตัวกรอง สถานะพับ และความสูงที่บันทึกไว้ก่อนค่าตั้งต้น
+        ค่า snapshot ต้องเป็นฟังก์ชัน synchronous และจะถูกเรียกเมื่อ export หรือคัดลอก</p>
+      <div class="demo-table">
+        <table>
+          <thead><tr><th>คำสั่ง</th><th>หน้าที่</th></tr></thead>
+          <tbody>
+            <tr><td><code>Logger.filter('error')</code></td><td>แสดงระดับที่เลือก ใช้ <code>'all'</code> เพื่อแสดงทั้งหมด</td></tr>
+            <tr><td><code>Logger.toggle(true)</code></td><td>เปิดแถบ; false เพื่อพับ; ไม่ส่งค่าเพื่อสลับ</td></tr>
+            <tr><td><code>Logger.clear()</code></td><td>ล้าง log ทั้งหมดรวมรายการที่บันทึกไว้</td></tr>
+            <tr><td><code>Logger.data()</code></td><td>คืนสำเนารายการ ไม่แก้ไขข้อมูลภายในโดยตรง</td></tr>
+            <tr><td><code>Logger.export()</code></td><td>คืน JSON string ของทุกระดับ พร้อมเวลา ตัวกรอง และ snapshot</td></tr>
+            <tr><td><code>await Logger.copy()</code></td><td>คัดลอก JSON ใน Markdown; คืน true เมื่อสำเร็จ หากไม่ได้จะแสดงช่องให้คัดลอกเองและคืน false</td></tr>
+            <tr><td><code>Logger.setMode('online')</code></td><td>สีจุดสถานะ: online ฟ้า, offline เขียว, standby เหลือง; แอปเป็นผู้กำหนดเอง</td></tr>
+            <tr><td><code>Logger.destroy()</code></td><td>ถอดแถบ คืนพื้นที่ ล้างหน่วยความจำ และยกเลิก event listeners; ข้อมูลที่เปิด persist ยังคงอยู่</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>ปุ่ม <strong>⧉ AI</strong> คัดลอกทุกระดับที่ยังเก็บอยู่ ไม่จำกัดตัวกรองที่เลือก
+        ไม่มีการส่งข้อมูลออกเครือข่ายอัตโนมัติ ตัวอย่างนี้ไม่เก็บ log ข้ามการโหลดหน้า
+        หากเปิด persist ให้เลือกเก็บเฉพาะข้อมูลที่เหมาะกับ localStorage</p>
+    </section>
+
+    <section class="demo-card" aria-labelledby="layout-title">
+      <h2 id="layout-title">04 / ใช้กับเลย์เอาต์ต่าง ๆ</h2>
+      <p>แถบใช้ <code>position: fixed</code> และติดกับขอบล่าง viewport
+        จอแคบเลื่อนชุดตัวกรองซ้าย–ขวาได้ โดยปุ่มหลักยังอยู่ในจอ
+        หน้าที่เลื่อนทั้งเอกสารจะมีพื้นที่สำรองท้ายหน้าให้อัตโนมัติ</p>
+      <p>ถ้าแอปเลื่อนเฉพาะ div หรือมี footer แบบ fixed ให้ใช้ตัวแปรความสูงที่ Logger อัปเดตให้
+        เลือกใช้เฉพาะส่วนที่ตรงกับเลย์เอาต์ของแอป:</p>
+      <pre><code>/* สำหรับแอปที่เลื่อนเนื้อหาภายใน div */
+.app-scroll {
+  padding-bottom: calc(16px + var(--log-space, 0px));
+}
+
+/* สำหรับ footer ที่ fixed อยู่ด้านล่างอยู่แล้ว */
+.app-footer {
+  bottom: var(--log-space, 0px);
+}
+
+/* ปรับค่าได้ใน CSS ของแอป */
+.log-dock {
+  --log-width: 1120px;
+  --log-z: 10000;
+}</code></pre>
+      <p>แนบแถบกับ body โดยตรง ควรหลีกเลี่ยง transform/filter บน html หรือ body ซึ่งเปลี่ยนจุดอ้างอิงของ fixed
+        CSS ของ logger ใช้ prefix <code>log-</code>; ส่วนตัวอย่างใช้ <code>log-demo</code> เท่านั้น
+        ถ้ามี CSS global ที่ใช้ <code>!important</code> ให้ตรวจการทับสไตล์ของหน้านั้น</p>
+      <p>ใช้ Tab ไปที่ขอบจับ แล้วกด ↑/↓ เพื่อปรับความสูง, Home/End เพื่อปรับต่ำสุด/สูงสุด,
+        Enter หรือ Space เพื่อย่อ/ขยาย และ Escape เพื่อพับเมื่อโฟกัสอยู่ใน logger</p>
+      <h3>ย้ายจาก StructuredLogger เดิม</h3>
+      <p>เอา script, HTML แถบ logger เดิม และการ init เดิมออกก่อน ใช้ 2 ไฟล์ใหม่นี้แทน
+        เปลี่ยน <code>StructuredLogger.info(...)</code> เป็น <code>Logger.info(...)</code>
+        โดยลำดับ category, message, meta เหมือนเดิม เปลี่ยน <code>stateProvider</code> เป็น <code>snapshot</code>
+        ไม่มีการดัก console หรือ global error ให้อัตโนมัติ ให้แอปเรียก Logger ในจุดที่ต้องการ</p>
+    </section>
+    <footer>มีเพียง 3 ไฟล์: logger.js · logger.css · index.html — เปิดด้วย browser รุ่นปัจจุบัน</footer>
+  </main>
+
+  <script>
+    // Demo only. In another application, keep only init and your own log calls.
+    document.addEventListener('DOMContentLoaded', function () {
+      Logger.init({ snapshot: () => ({ page: 'logger-demo' }) });
+      Logger.info('APP', 'Logger พร้อมใช้งาน');
+      Logger.success('DEMO', 'โหลด JavaScript และ CSS จากไฟล์ในเครื่องแล้ว');
+      const examples = {
+        info: ['APP', 'เปิดหน้ารายการ', { page: 1 }],
+        success: ['SAVE', 'บันทึกข้อมูลสำเร็จ', { id: 42 }],
+        warn: ['API', 'คำขอใช้เวลานานกว่าปกติ', { ms: 1200 }],
+        error: ['SAVE', 'ตัวอย่างข้อผิดพลาด', new Error('Example error')],
+        debug: ['FORM', 'ตรวจค่าระหว่างพัฒนา', { dirty: true }]
+      };
+      document.getElementById('demo-actions').addEventListener('click', function (event) {
+        const btn = event.target.closest('[data-level]');
+        if (btn) Logger[btn.dataset.level](...examples[btn.dataset.level]);
+      });
+      document.getElementById('demo-burst').addEventListener('click', function () {
+        for (let i = 1; i <= 250; i++) Logger.debug('BATCH', 'รายการที่ ' + i);
+        Logger.filter('all');
+        Logger.toggle(true);
+      });
+    });
+  </script>
+</body>
+</html>

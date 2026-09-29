@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>CoreEngine — App Shell with Modular Structured Logger</title>
+  <style>
+    /* ==========================================================================
+       1. DESIGN SYSTEM & DETERMINISTIC VISUAL TOKENS
+       ========================================================================== */
+    :root {
+      --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      
+      --ui-bg: #020617;
+      --ui-panel: #0f172a;
+      --ui-panel-soft: rgba(15, 23, 42, 0.95);
+      --ui-border: #1e293b;
+      --ui-border-strong: #334155;
+      --ui-text: #f1f5f9;
+      --ui-muted: #94a3b8;
+      
+      --ui-accent: #38bdf8;
+      --ui-danger: #fb7185;
+      --ui-warn: #fbbf24;
+      --ui-success: #34d399;
+      --ui-debug: #c084fc;
+      
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 14px;
+      --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+      --touch-min: 44px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      font-family: var(--font-ui);
+      background-color: var(--ui-bg);
+      color: var(--ui-text);
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Scrollbars */
+    .custom-scroll::-webkit-scrollbar, #log-body::-webkit-scrollbar { width: 5px; height: 5px; }
+    .custom-scroll::-webkit-scrollbar-track, #log-body::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.7); }
+    .custom-scroll::-webkit-scrollbar-thumb, #log-body::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+    .custom-scroll::-webkit-scrollbar-thumb:hover, #log-body::-webkit-scrollbar-thumb:hover { background: #475569; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    /* ==========================================================================
+       2. TOP STATUS BAR (HEADER)
+       ========================================================================== */
+    header {
+      height: 40px;
+      background-color: var(--ui-panel);
+      border-bottom: 1px solid var(--ui-border);
+      padding: 0 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      z-index: 20;
+    }
+
+    .brand-title {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: 700;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      color: var(--ui-accent);
+      font-family: var(--font-mono);
+    }
+
+    .brand-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--ui-accent);
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.8);
+    }
+
+    #badge-storage-provider {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: var(--radius-sm);
+    }
+
+    /* ==========================================================================
+       3. WORKSPACE & TEST CARD
+       ========================================================================== */
+    .workspace-container {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      overflow-y: auto;
+      margin-bottom: 34px;
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--ui-panel);
+      border: 1px solid var(--ui-border);
+      border-radius: var(--radius-lg);
+      padding: 1.75rem;
+      box-shadow: var(--shadow-2xl);
+    }
+
+    .card-header h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .card-header p {
+      font-size: 0.8125rem;
+      color: var(--ui-muted);
+      margin-top: 0.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .preset-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px dashed rgba(56, 189, 248, 0.3);
+      border-radius: var(--radius-sm);
+      padding: 0.45rem 0.75rem;
+      margin-bottom: 1.25rem;
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      color: var(--ui-text);
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--ui-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.65rem 0.85rem;
+      background: var(--ui-bg);
+      border: 1px solid var(--ui-border);
+      border-radius: var(--radius-md);
+      color: var(--ui-text);
+      font-size: 0.875rem;
+      outline: none;
+      transition: border-color 0.15s;
+      font-family: inherit;
+      user-select: text;
+    }
+
+    input:focus {
+      border-color: var(--ui-accent);
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 0.65rem 1rem;
+      border: none;
+      border-radius: var(--radius-md);
+      background: var(--ui-accent);
+      color: #020617;
+      font-weight: 700;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn:hover:not(:disabled) { opacity: 0.9; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .btn-secondary {
+      background: #1e293b;
+      color: var(--ui-text);
+      border: 1px solid var(--ui-border-strong);
+      padding: 2px 8px;
+      font-size: 0.6875rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+    .btn-secondary:hover { background: #334155; }
+
+    /* ==========================================================================
+       4. CONSTRUCT MODULAR LOGGER DOCK (Full Blueprint Spec)
+       ========================================================================== */
+    #logger-panel {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 50;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--ui-border);
+      box-shadow: var(--shadow-2xl);
+    }
+
+    .resizer-handle {
+      width: 100%;
+      height: 6px;
+      background: rgba(30, 41, 59, 0.6);
+      cursor: row-resize;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      touch-action: none;
+      transition: background-color 0.15s;
+    }
+    .resizer-handle:hover, .resizer-handle.resizing {
+      background-color: var(--ui-accent);
+    }
+    .resizer-bar {
+      width: 40px;
+      height: 2px;
+      background: #475569;
+      border-radius: 9999px;
+    }
+
+    .logger-header {
+      width: 100%;
+      max-width: 100%;
+      padding: 0.35rem 0.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      overflow-x: auto;
+    }
+
+    #filter-bar {
+      display: inline-flex;
+      background: var(--ui-bg);
+      border: 1px solid var(--ui-border);
+      padding: 2px;
+      border-radius: var(--radius-sm);
+      font-size: 10px;
+      font-family: var(--font-mono);
+      flex-shrink: 0;
+    }
+
+    .filter-btn {
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: inherit;
+      transition: all 0.15s;
+    }
+
+    /* Severity Palette & Token Classes */
+    .filter-btn-ALL-active     { background: #334155; color: #fff; font-weight: bold; }
+    .filter-btn-error-active   { background: #e11d48; color: #fff; font-weight: bold; }
+    .filter-btn-warn-active    { background: #d97706; color: #fff; font-weight: bold; }
+    .filter-btn-info-active    { background: #0284c7; color: #fff; font-weight: bold; }
+    .filter-btn-success-active { background: #059669; color: #fff; font-weight: bold; }
+    .filter-btn-debug-active   { background: #9333ea; color: #fff; font-weight: bold; }
+
+    .filter-btn-ALL-inactive     { color: #94a3b8; background: transparent; }
+    .filter-btn-error-inactive   { color: #fb7185; background: transparent; }
+    .filter-btn-warn-inactive    { color: #fbbf24; background: transparent; }
+    .filter-btn-info-inactive    { color: #38bdf8; background: transparent; }
+    .filter-btn-success-inactive { color: #34d399; background: transparent; }
+    .filter-btn-debug-inactive   { color: #c084fc; background: transparent; }
+
+    .log-sev-error   { border-left: 2px solid #f43f5e; background: rgba(76, 5, 25, 0.4); color: #fecdd3; }
+    .log-sev-warn    { border-left: 2px solid #fbbf24; background: rgba(69, 26, 3, 0.3); color: #fef08a; }
+    .log-sev-info    { border-left: 2px solid #38bdf8; background: rgba(2, 6, 23, 0.7); color: #f1f5f9; }
+    .log-sev-success { border-left: 2px solid #34d399; background: rgba(2, 44, 34, 0.3); color: #a7f3d0; }
+    .log-sev-debug   { border-left: 2px solid #c084fc; background: rgba(59, 7, 100, 0.2); color: #f3e8ff; }
+
+    .log-cat-ONLINE    { background: #082f49; color: #38bdf8; border: 1px solid #0369a1; }
+    .log-cat-OFFLINE   { background: #022c22; color: #34d399; border: 1px solid #047857; }
+    .log-cat-OPFS      { background: #022c22; color: #34d399; border: 1px solid #047857; }
+    .log-cat-STORAGE   { background: #451a03; color: #fbbf24; border: 1px solid #b45309; }
+    .log-cat-WORKSPACE { background: #1e1b4b; color: #818cf8; border: 1px solid #4338ca; }
+    .log-cat-APP       { background: #1e1b4b; color: #818cf8; border: 1px solid #4338ca; }
+    .log-cat-AUTH      { background: #042f2e; color: #2dd4bf; border: 1px solid #0f766e; }
+    .log-cat-SYS       { background: #1e293b; color: #cbd5e1; border: 1px solid #334155; }
+    .log-cat-ERROR     { background: #4c0519; color: #fb7185; border: 1px solid #be123c; }
+
+    .dock-btn {
+      background: #1e293b;
+      border: 1px solid var(--ui-border);
+      color: var(--ui-muted);
+      padding: 3px 8px;
+      font-size: 10px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .dock-btn:hover { color: #fff; background: #334155; }
+    .dock-btn-ai { background: #0284c7; color: #fff; border: none; font-weight: 600; display: inline-flex; align-items: center; gap: 2px; }
+    .dock-btn-ai:hover { background: #0369a1; }
+
+    #log-body {
+      overflow-y: auto;
+      padding: 0.5rem 0.75rem;
+    }
+    #log-stream {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .log-entry {
+      padding: 2px 6px;
+      border-radius: 2px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.4;
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      user-select: text;
+    }
+    .log-time { color: #64748b; font-size: 10px; user-select: none; }
+    .log-cat { font-size: 9px; font-weight: bold; padding: 0 4px; border-radius: 2px; }
+  </style>
+</head>
+
+<body>
+
+  <!-- Top App Shell Bar -->
+  <header>
+    <div class="brand-title">
+      <div class="brand-dot"></div>
+      <span>CORE-ENGINE SHELL</span>
+    </div>
+    <span id="badge-storage-provider" class="log-cat-SYS">INITIALIZING...</span>
+  </header>
+
+  <!-- Main Viewport Area -->
+  <main class="workspace-container">
+    <div class="login-card">
+      <div class="card-header">
+        <h2>Microkernel Auth Stage</h2>
+        <p>Signal State Machine + OPFS Direct Stream Storage</p>
+      </div>
+
+      <div class="preset-banner">
+        <span>Fixed: <strong>admin</strong> / <strong>password123</strong></span>
+        <button type="button" id="btn-reset" class="btn-secondary">Reset Preset</button>
+      </div>
+
+      <form id="auth-form" autocomplete="off">
+        <div class="form-group">
+          <label for="usernameInput">Username</label>
+          <input type="text" id="usernameInput" required>
+        </div>
+
+        <div class="form-group">
+          <label for="passwordInput">Password</label>
+          <input type="password" id="passwordInput" required>
+        </div>
+
+        <button type="submit" id="btn-submit" class="btn" style="margin-top: 0.5rem;">
+          <span id="btn-label">Sign In</span>
+        </button>
+      </form>
+    </div>
+  </main>
+
+  <!-- Complete Construct-Style Structured Logger Dock -->
+  <aside id="logger-panel">
+    <div class="resizer-handle" id="drag-handle" title="คลิกลากขึ้น-ลง เพื่อปรับขนาดส่วน Log">
+      <div class="resizer-bar"></div>
+    </div>
+
+    <div class="logger-header no-scrollbar">
+      <div style="display:flex; align-items:center; gap:0.5rem; flex-shrink:0;">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] shrink-0 cursor-help" id="badge-system-mode" style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#34d399;" title="Mode: OFFLINE READY"></span>
+        <div id="filter-bar">
+          <button class="filter-btn filter-btn-ALL-active" data-filter="ALL">ALL <span id="cnt-all">0</span></button>
+          <button class="filter-btn filter-btn-error-inactive" data-filter="error">ERR <span id="cnt-error">0</span></button>
+          <button class="filter-btn filter-btn-warn-inactive" data-filter="warn">WARN <span id="cnt-warn">0</span></button>
+          <button class="filter-btn filter-btn-info-inactive" data-filter="info">INFO <span id="cnt-info">0</span></button>
+          <button class="filter-btn filter-btn-success-inactive" data-filter="success">SUCC <span id="cnt-success">0</span></button>
+          <button class="filter-btn filter-btn-debug-inactive" data-filter="debug">DBG <span id="cnt-debug">0</span></button>
+        </div>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:0.25rem; flex-shrink:0;">
+        <button class="dock-btn dock-btn-ai" id="btn-copy-ai" title="คัดลอก Structured Log และ Diagnostic Context ให้ AI">
+          <span>📋</span><span>AI</span>
+        </button>
+        <button class="dock-btn" id="btn-clear-logs">ล้าง</button>
+        <button class="dock-btn" id="btn-toggle-drawer">[ขยาย]</button>
+      </div>
+    </div>
+
+    <div id="log-body" class="custom-scroll" style="display: none; height: 220px;">
+      <div id="log-stream"></div>
+    </div>
+  </aside>
+
+  <!-- ==========================================================================
+       RUNTIME ENGINE MODULES
+       ========================================================================== -->
+  <script>
+    /* ==========================================================================
+       Module 1: Complete Structured Logger Core (ตามมาตรฐาน Construct IDE)
+       ========================================================================== */
+    const StructuredLogger = (() => {
+      const STORAGE_KEY = "__demo_structured_logs__";
+      const FILTER_STORAGE_KEY = "__demo_log_active_filter__";
+      const DRAWER_STORAGE_KEY = "__demo_log_drawer_collapsed__";
+      const HEIGHT_STORAGE_KEY = "__demo_log_drawer_height__";
+      const MAX_PERSISTED = 120;
+      
+      const logEntries = [];
+      let isRenderScheduled = false;
+
+      let activeFilter = (() => {
+        try { return localStorage.getItem(FILTER_STORAGE_KEY) || "ALL"; } catch (_) { return "ALL"; }
+      })();
+
+      let isDrawerCollapsed = (() => {
+        try {
+          const val = localStorage.getItem(DRAWER_STORAGE_KEY);
+          return val !== null ? JSON.parse(val) : true;
+        } catch (_) { return true; }
+      })();
+
+      let currentHeight = (() => {
+        try {
+          const h = localStorage.getItem(HEIGHT_STORAGE_KEY);
+          return h !== null ? parseInt(h, 10) : 220;
+        } catch (_) { return 220; }
+      })();
+
+      function escapeHtml(str) {
+        return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      }
+
+      function updateCounterBadges() {
+        const counts = { ALL: logEntries.length, error: 0, warn: 0, info: 0, success: 0, debug: 0 };
+        for (let i = 0; i < logEntries.length; i++) {
+          const lvl = logEntries[i].level;
+          if (counts[lvl] !== undefined) counts[lvl]++;
+        }
+        for (const [k, v] of Object.entries(counts)) {
+          const el = document.getElementById(`cnt-${String(k).toLowerCase()}`);
+          if (el) el.textContent = v;
+        }
+      }
+
+      function applyFilterUI() {
+        document.querySelectorAll("#filter-bar .filter-btn").forEach(btn => {
+          const t = btn.getAttribute("data-filter");
+          btn.className = `filter-btn filter-btn-${t}-${t === activeFilter ? 'active' : 'inactive'}`;
+        });
+      }
+
+      function applyDrawerState() {
+        const body = document.getElementById("log-body");
+        const btnToggle = document.getElementById("btn-toggle-drawer");
+        if (!body) return;
+        if (isDrawerCollapsed) {
+          body.style.display = "none";
+          if (btnToggle) btnToggle.textContent = "[ขยาย]";
+        } else {
+          body.style.display = "block";
+          body.style.height = `${currentHeight}px`;
+          if (btnToggle) btnToggle.textContent = "[ย่อ]";
+        }
+      }
+
+      function toggleDrawer() {
+        isDrawerCollapsed = !isDrawerCollapsed;
+        try { localStorage.setItem(DRAWER_STORAGE_KEY, JSON.stringify(isDrawerCollapsed)); } catch (_) {}
+        applyDrawerState();
+      }
+
+      function initResizeHandler() {
+        const handle = document.getElementById("drag-handle");
+        const body = document.getElementById("log-body");
+        if (!handle || !body) return;
+
+        let startY = 0, startHeight = 0, isDragging = false;
+        const onStart = (clientY) => {
+          if (isDrawerCollapsed) {
+            isDrawerCollapsed = false;
+            try { localStorage.setItem(DRAWER_STORAGE_KEY, "false"); } catch (_) {}
+            applyDrawerState();
+          }
+          isDragging = true;
+          startY = clientY;
+          startHeight = body.getBoundingClientRect().height || currentHeight;
+          handle.classList.add("resizing");
+          document.body.style.cursor = "row-resize";
+        };
+        const onMove = (clientY) => {
+          if (!isDragging) return;
+          const deltaY = startY - clientY;
+          let newHeight = startHeight + deltaY;
+          const maxHeight = window.innerHeight * 0.8;
+          if (newHeight < 60) newHeight = 60;
+          if (newHeight > maxHeight) newHeight = maxHeight;
+
+          currentHeight = Math.round(newHeight);
+          body.style.height = `${currentHeight}px`;
+        };
+        const onEnd = () => {
+          if (!isDragging) return;
+          isDragging = false;
+          handle.classList.remove("resizing");
+          document.body.style.cursor = "";
+          try { localStorage.setItem(HEIGHT_STORAGE_KEY, currentHeight.toString()); } catch (_) {}
+        };
+
+        handle.addEventListener("mousedown", (e) => { e.preventDefault(); onStart(e.clientY); });
+        window.addEventListener("mousemove", (e) => onMove(e.clientY));
+        window.addEventListener("mouseup", onEnd);
+      }
+
+      function createLogElement(entry) {
+        const div = document.createElement("div");
+        div.className = `log-entry log-sev-${entry.level}`;
+        
+        let metaHtml = "";
+        if (entry.meta && Object.keys(entry.meta).length > 0) {
+          metaHtml = `<span style="font-size:10px; opacity:0.8; background:rgba(2,6,23,0.9); padding:1px 4px; border-radius:2px; border:1px solid #1e293b; word-break:break-all;">${escapeHtml(JSON.stringify(entry.meta))}</span>`;
+        }
+
+        const catClass = `log-cat-${entry.category}` || 'log-cat-SYS';
+
+        div.innerHTML = `
+          <span class="log-time">[${entry.timeStr}]</span>
+          <span class="log-cat ${catClass}">[${entry.category}]</span>
+          <span style="word-break:break-word;">${escapeHtml(entry.message)}</span>${metaHtml}
+        `;
+        return div;
+      }
+
+      function renderLogStream() {
+        const stream = document.getElementById("log-stream");
+        if (!stream) { isRenderScheduled = false; return; }
+        stream.innerHTML = "";
+        const frag = document.createDocumentFragment();
+        const filtered = activeFilter === "ALL" ? logEntries : logEntries.filter(e => e.level === activeFilter);
+        for (let i = 0; i < filtered.length; i++) frag.appendChild(createLogElement(filtered[i]));
+        stream.appendChild(frag);
+        updateCounterBadges();
+        const body = document.getElementById("log-body");
+        if (body && !isDrawerCollapsed) body.scrollTop = body.scrollHeight;
+        isRenderScheduled = false;
+      }
+
+      function scheduleRender() {
+        if (isRenderScheduled) return;
+        isRenderScheduled = true;
+        requestAnimationFrame(renderLogStream);
+      }
+
+      function dispatch(category, level, message, meta = null) {
+        const entry = {
+          id: Date.now() + Math.random().toString(36).substring(2, 6),
+          timestamp: new Date().toISOString(),
+          timeStr: new Date().toTimeString().split(" ")[0],
+          category: category.toUpperCase(),
+          level: level.toLowerCase(),
+          message: typeof message === "object" ? JSON.stringify(message) : String(message),
+          meta
+        };
+        logEntries.push(entry);
+        scheduleRender();
+        const save = () => {
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(logEntries.slice(-MAX_PERSISTED))); } catch (_) {}
+        };
+        'requestIdleCallback' in window ? window.requestIdleCallback(save) : setTimeout(save, 200);
+      }
+
+      async function copyStructuredLogsForAI(btn) {
+        const payload = {
+          environment: {
+            timestamp: new Date().toISOString(),
+            protocol: window.location.protocol,
+            userAgent: navigator.userAgent,
+            filterView: activeFilter,
+            totalLogsCount: logEntries.length
+          },
+          recentLogs: logEntries.slice(-50).map(e => ({
+            time: e.timeStr, cat: e.category, lvl: e.level, msg: e.message, ...(e.meta ? { meta: e.meta } : {})
+          }))
+        };
+        const markdownOutput = `### 🤖 CoreEngine Diagnostics & Execution Context\n- Generated: ${payload.environment.timestamp}\n- Protocol:${payload.environment.protocol}\n\n\`\`\`json\n${JSON.stringify(payload, null, 2)}\n\`\`\``;
+        try {
+          await navigator.clipboard.writeText(markdownOutput);
+          btn.innerHTML = "<span>✔</span><span>Copied</span>";
+          setTimeout(() => { btn.innerHTML = "<span>📋</span><span>AI</span>"; }, 2000);
+        } catch (_) {}
+      }
+
+      function init() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) logEntries.push(...parsed);
+          }
+        } catch (_) {}
+
+        applyFilterUI();
+        applyDrawerState();
+        initResizeHandler();
+
+        document.getElementById("btn-toggle-drawer").addEventListener("click", toggleDrawer);
+        document.getElementById("btn-copy-ai").addEventListener("click", (e) => copyStructuredLogsForAI(e.currentTarget));
+        document.getElementById("btn-clear-logs").addEventListener("click", () => {
+          logEntries.length = 0;
+          try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+          scheduleRender();
+        });
+        document.getElementById("filter-bar").addEventListener("click", (e) => {
+          const btn = e.target.closest(".filter-btn");
+          if (!btn) return;
+          activeFilter = btn.getAttribute("data-filter");
+          try { localStorage.setItem(FILTER_STORAGE_KEY, activeFilter); } catch (_) {}
+          applyFilterUI();
+          scheduleRender();
+        });
+
+        scheduleRender();
+      }
+
+      return {
+        init,
+        error: (cat, msg, meta) => dispatch(cat, "error", msg, meta),
+        warn: (cat, msg, meta) => dispatch(cat, "warn", msg, meta),
+        info: (cat, msg, meta) => dispatch(cat, "info", msg, meta),
+        success: (cat, msg, meta) => dispatch(cat, "success", msg, meta),
+        debug: (cat, msg, meta) => dispatch(cat, "debug", msg, meta)
+      };
+    })();
+
+    /* ==========================================================================
+       Module 2: OPFS Storage Provider & Fallback Stream Manager
+       ========================================================================== */
+    class StorageEngine {
+      static isSupported() {
+        return Boolean(window.navigator?.storage?.getDirectory);
+      }
+
+      static async init() {
+        const badge = document.getElementById("badge-storage-provider");
+        if (this.isSupported()) {
+          try {
+            this.root = await navigator.storage.getDirectory();
+            if (navigator.storage?.persist) await navigator.storage.persist();
+            this.mode = "OPFS";
+            badge.textContent = "OPFS READY";
+            badge.className = "log-cat-OPFS";
+            StructuredLogger.success("OPFS", "เชื่อมต่อ Origin Private File System แบบ Native Stream สำเร็จ 100%");
+            return;
+          } catch (err) {
+            StructuredLogger.warn("STORAGE", `OPFS ปฏิเสธการเข้าถึง: ${err.message} สลับไป LocalStorage Fallback`);
+          }
+        }
+        this.mode = "LOCALSTORAGE";
+        badge.textContent = "LOCALSTORAGE";
+        badge.className = "log-cat-STORAGE";
+        StructuredLogger.info("STORAGE", "เปิดใช้งาน LocalStorage Provider สำรอง");
+      }
+
+      static async write(filename, content) {
+        if (this.mode === "OPFS") {
+          const fileHandle = await this.root.getFileHandle(filename, { create: true });
+          const writableStream = await fileHandle.createWritable();
+          try {
+            await writableStream.write(content);
+          } finally {
+            await writableStream.close();
+          }
+          const fileObj = await fileHandle.getFile();
+          return { size: fileObj.size, path: filename };
+        } else {
+          localStorage.setItem(`__opfs_fallback_${filename}`, content);
+          return { size: new Blob([content]).size, path: filename };
+        }
+      }
+    }
+
+    /* ==========================================================================
+       Module 3: Signal Microkernel
+       ========================================================================== */
+    class SignalKernel {
+      static activeEffect = null;
+      static createSignal(initial) {
+        let val = initial;
+        const subs = new Set();
+        const read = () => {
+          if (SignalKernel.activeEffect) subs.add(SignalKernel.activeEffect);
+          return val;
+        };
+        const write = (next) => {
+          const resolved = typeof next === "function" ? next(val) : next;
+          if (val !== resolved) {
+            val = resolved;
+            [...subs].forEach(fn => fn());
+          }
+        };
+        return [read, write];
+      }
+      static createComputed(fn) {
+        const [read, write] = SignalKernel.createSignal();
+        SignalKernel.createEffect(() => write(fn()));
+        return read;
+      }
+      static createEffect(fn) {
+        const run = () => {
+          SignalKernel.activeEffect = run;
+          try { fn(); } finally { SignalKernel.activeEffect = null; }
+        };
+        run();
+      }
+    }
+
+    /* ==========================================================================
+       Module 4: Application State & DOM Bindings
+       ========================================================================== */
+    const { createSignal, createComputed, createEffect } = SignalKernel;
+
+    const DEFAULT_USER = 'admin';
+    const DEFAULT_PASS = 'password123';
+
+    const [username, setUsername] = createSignal(DEFAULT_USER);
+    const [password, setPassword] = createSignal(DEFAULT_PASS);
+    const [loading, setLoading] = createSignal(false);
+
+    const isValid = createComputed(() => username().trim().length >= 3 && password().length >= 6);
+    const isSubmitDisabled = createComputed(() => !isValid() || loading());
+
+    const elUser = document.getElementById('usernameInput');
+    const elPass = document.getElementById('passwordInput');
+    const elBtn = document.getElementById('btn-submit');
+    const elBtnLabel = document.getElementById('btn-label');
+
+    elUser.addEventListener('input', (e) => setUsername(e.target.value));
+    elPass.addEventListener('input', (e) => setPassword(e.target.value));
+
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      setUsername(DEFAULT_USER);
+      setPassword(DEFAULT_PASS);
+      StructuredLogger.debug("APP", "รีเซ็ตค่า Signal เป็นค่าเริ่มต้น (admin / password123)");
+    });
+
+    createEffect(() => { if (elUser.value !== username()) elUser.value = username(); });
+    createEffect(() => { if (elPass.value !== password()) elPass.value = password(); });
+    createEffect(() => {
+      elBtn.disabled = isSubmitDisabled();
+      elBtnLabel.textContent = loading() ? 'กำลังตรวจสอบ...' : 'Sign In';
+    });
+
+    document.getElementById('auth-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (isSubmitDisabled()) return;
+
+      setLoading(true);
+      StructuredLogger.info("AUTH", `เริ่มกระบวนการ Authentication Handshake สำหรับผู้ใช้: [${username()}]`);
+
+      setTimeout(async () => {
+        setLoading(false);
+        if (username() === DEFAULT_USER && password() === DEFAULT_PASS) {
+          StructuredLogger.success("AUTH", "Authentication ผ่านสำเร็จ: ได้รับสิทธิ์เข้าสู่ระบบ CoreEngine");
+          
+          const sessionData = JSON.stringify({
+            user: username(),
+            authenticatedAt: new Date().toISOString(),
+            engine: "SignalMicrokernel v2.1"
+          }, null, 2);
+
+          const meta = await StorageEngine.write("auth_session.json", sessionData);
+          StructuredLogger.success("OPFS", `บันทึกไฟล์เซสชันลง Disk Stream สำเร็จ: ${meta.path}`, { bytes: meta.size });
+        } else {
+          StructuredLogger.error("AUTH", "Authentication ถูกปฏิเสธ: ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง", { attemptUser: username() });
+        }
+      }, 600);
+    });
+
+    // Application Bootstrap Sequence
+    (async () => {
+      StructuredLogger.init();
+      StructuredLogger.info("SYS", "ระบบบันทึกและคอนโซลวินิจฉัย (Structured Logger) พร้อมทำงาน");
+      await StorageEngine.init();
+      StructuredLogger.debug("SYS", "Signal Microkernel ซิงโครไนซ์กับ Viewport DOM เรียบร้อย");
+    })();
+  </script>
+</body>
+</html>

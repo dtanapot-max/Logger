@@ -1,0 +1,189 @@
+/* Copy this file with logger.js. All dock styles are scoped to .log-dock. */
+.log-dock {
+  --log-bg: #0e1727;
+  --log-line: #29364a;
+  --log-text: #dbe6f5;
+  --log-muted: #98a9be;
+  position: fixed;
+  inset: auto 0 0;
+  z-index: var(--log-z, 10000);
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  padding: 0 0 env(safe-area-inset-bottom, 0px);
+  border: 0;
+  border-top: 1px solid var(--log-line);
+  background: var(--log-bg);
+  color: var(--log-text);
+  color-scheme: dark;
+  box-shadow: 0 -6px 24px #0003;
+  font: 12px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+  text-align: left;
+  direction: ltr;
+  isolation: isolate;
+}
+.log-dock *, .log-dock *::before, .log-dock *::after { box-sizing: border-box; }
+.log-dock [hidden] { display: none !important; }
+.log-dock [data-level="error"] { --log-color: #ff7e94; }
+.log-dock [data-level="warn"] { --log-color: #ffd261; }
+.log-dock [data-level="info"] { --log-color: #5acbff; }
+.log-dock [data-level="success"] { --log-color: #54e4b0; }
+.log-dock [data-level="debug"] { --log-color: #c5a0ff; }
+.log-dock [data-level="all"] { --log-color: #e6eefb; }
+.log-dock .log-handle {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 10px;
+  margin: 0;
+  padding: 0;
+  background: #1c293b;
+  cursor: row-resize;
+  touch-action: none;
+  user-select: none;
+}
+.log-dock .log-handle::after {
+  content: '';
+  width: 48px;
+  height: 3px;
+  border-radius: 3px;
+  background: #718299;
+}
+.log-dock .log-handle:hover { background: #234b68; }
+.log-dock .log-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: var(--log-width, 1120px);
+  min-width: 0;
+  margin: 0 auto;
+  padding: 7px max(10px, env(safe-area-inset-left)) 7px max(10px, env(safe-area-inset-right));
+}
+.log-dock .log-dot {
+  display: block;
+  flex: 0 0 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #fbbf24;
+  box-shadow: 0 0 8px #fbbf2455;
+}
+.log-dock .log-dot[data-mode="online"] { background: #38bdf8; box-shadow: 0 0 8px #38bdf855; }
+.log-dock .log-dot[data-mode="offline"] { background: #34d399; box-shadow: 0 0 8px #34d39955; }
+.log-dock .log-filters {
+  display: flex;
+  flex: 0 1 auto;
+  gap: 2px;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #44556e #070d18;
+  border: 1px solid var(--log-line);
+  border-radius: 7px;
+  background: #070d18;
+  padding: 2px;
+}
+.log-dock .log-btn {
+  appearance: none;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
+  min-height: 30px;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 4px 7px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--log-color, var(--log-text));
+  font: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: normal;
+  line-height: 1.4;
+  text-transform: none;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: none;
+}
+.log-dock .log-btn:hover { background: #25344b; }
+.log-dock .log-btn[aria-pressed="true"] { background: #34435b; color: var(--log-color); font-weight: 700; }
+.log-dock .log-count { font-variant-numeric: tabular-nums; }
+.log-dock .log-actions { display: flex; flex: 0 0 auto; gap: 4px; margin-left: auto; }
+.log-dock .log-actions .log-btn { border-color: var(--log-line); }
+.log-dock .log-actions .log-copy-btn { background: #007fb5; color: #fff; border-color: #078dcc; }
+.log-dock .log-copy-btn:hover { background: #09668f; }
+.log-dock :focus-visible { outline: 2px solid #7dd3fc; outline-offset: -2px; }
+.log-dock .log-body {
+  max-width: var(--log-width, 1120px);
+  margin: 0 auto;
+  padding: 8px max(10px, env(safe-area-inset-right)) 12px max(10px, env(safe-area-inset-left));
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #44556e #0e1727;
+}
+.log-dock .log-stream { display: grid; gap: 5px; min-width: 0; }
+.log-dock .log-entry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 3px 8px;
+  min-width: 0;
+  padding: 6px 9px;
+  border-left: 2px solid var(--log-color);
+  border-radius: 3px;
+  background: #080f1d;
+  color: var(--log-text);
+  overflow-wrap: anywhere;
+}
+.log-dock .log-time { color: var(--log-muted); font-size: 10px; }
+.log-dock .log-level { color: var(--log-color); font-size: 10px; font-weight: 700; }
+.log-dock .log-cat { max-width: 100%; color: #bccbe0; font-size: 10px; border: 1px solid var(--log-line); border-radius: 3px; padding: 0 4px; }
+.log-dock .log-msg { white-space: pre-wrap; }
+.log-dock .log-meta { max-width: 100%; color: var(--log-muted); background: #152136; font: inherit; font-size: 11px; border-radius: 3px; padding: 0 4px; white-space: pre-wrap; }
+.log-dock .log-note, .log-dock .log-empty { margin: 0; padding: 8px 0; color: var(--log-muted); }
+.log-dock .log-note:empty { display: none; }
+.log-dock .log-copy { display: block; width: 100%; min-height: 110px; margin: 0 0 10px; padding: 8px; border: 1px solid #55718e; border-radius: 4px; background: #070d18; color: #e6eefb; font: inherit; resize: vertical; }
+.log-space { display: block; flex: 0 0 auto; width: 100%; height: 0; margin: 0; padding: 0; border: 0; pointer-events: none; }
+@media (max-width: 600px) {
+  .log-dock .log-bar { gap: 6px; padding-inline: 8px; }
+  .log-dock .log-btn { min-height: 36px; }
+  .log-dock .log-dot { flex-basis: 8px; height: 8px; }
+  .log-dock .log-filters { flex: 1 1 0; }
+  .log-dock .log-actions { gap: 2px; }
+}
+@media print { .log-dock, .log-space { display: none !important; } }
+
+/* Demo page only: these selectors do not affect another page using this file. */
+.log-demo { margin: 0; background: #f3f6fa; color: #203048; font: 16px/1.75 system-ui, sans-serif; }
+.log-demo * { box-sizing: border-box; }
+.log-demo main { width: min(920px, 100% - 40px); margin: 56px auto 44px; }
+.log-demo .demo-tag { color: #176a80; font: 700 12px/1.5 ui-monospace, monospace; letter-spacing: 2px; }
+.log-demo h1 { margin: 10px 0 12px; font-size: clamp(30px, 5vw, 48px); line-height: 1.2; letter-spacing: -1.5px; }
+.log-demo h2 { margin: 0 0 14px; font-size: 21px; }
+.log-demo h3 { margin: 18px 0 8px; font-size: 16px; }
+.log-demo p { margin: 8px 0 16px; }
+.log-demo .demo-lead { max-width: 720px; color: #55657b; }
+.log-demo .demo-card { margin: 22px 0; padding: 26px; border: 1px solid #d8e1eb; border-radius: 14px; background: #fff; }
+.log-demo .demo-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.log-demo .demo-actions button { padding: 10px 14px; border: 1px solid #becddb; border-radius: 7px; background: #edf4f9; color: #173653; font: inherit; font-size: 14px; cursor: pointer; }
+.log-demo .demo-actions button:hover { background: #dbeaf5; }
+.log-demo .demo-actions button:focus-visible { outline: 3px solid #027fa3; outline-offset: 2px; }
+.log-demo pre { margin: 12px 0; padding: 20px; overflow: auto; border-radius: 9px; background: #101d30; color: #d8e9ff; font: 13px/1.8 ui-monospace, Consolas, monospace; tab-size: 2; }
+.log-demo code { font-family: ui-monospace, Consolas, monospace; }
+.log-demo .demo-table { overflow-x: auto; }
+.log-demo table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.log-demo th, .log-demo td { padding: 12px 10px; border-bottom: 1px solid #e1e8f0; text-align: left; vertical-align: top; }
+.log-demo th { color: #516680; }
+.log-demo td:first-child { min-width: 200px; }
+.log-demo footer { color: #62768e; font-size: 13px; }
+@media (max-width: 600px) {
+  .log-demo main { width: calc(100% - 28px); margin-top: 28px; }
+  .log-demo .demo-card { padding: 18px; }
+}
