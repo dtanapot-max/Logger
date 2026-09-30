@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HMVC Login Framework Prototype</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* Baseline UI System Tokens */
+    *,*::before,*::after{box-sizing:border-box}
+    html{-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-behavior:smooth;line-height:1.5}
+    body,h1,h2,h3,h4,h5,p{margin:0}
+    button,input,select,textarea{font:inherit;font-size:100%;line-height:1.5;margin:0;color:inherit}
+    button,input{overflow:visible} button,select{text-transform:none}
+    button,[type=button],[type=reset],[type=submit]{-webkit-appearance:button}
+    img,svg{max-width:100%;display:block}
+
+    :root{
+      color-scheme:light;
+      --bg:#f5f6f8;--surface:#fff;--surface2:#fafbfc;--surface3:#f1f3f5;
+      --text:#17191d;--muted:#69707c;--muted2:#9299a3;--border:#dfe3e8;--border2:#cbd1d9;
+      --primary:#2563eb;--primary2:#1d4ed8;--primarySoft:#eef4ff;
+      --ok:#16834b;--okSoft:#edf8f2;--warn:#a56516;--warnSoft:#fff7e8;--bad:#c43e3e;--badSoft:#fff0f0;
+      --shadow:0 1px 2px rgba(20,25,35,.03),0 8px 24px rgba(20,25,35,.04);
+      --control:44px;--buttonVisual:40px;
+    }
+    :root[data-theme="dark"]{
+      color-scheme:dark;
+      --bg:#17191e;--surface:#202329;--surface2:#1c1f24;--surface3:#282c33;
+      --text:#eef1f5;--muted:#b3bac4;--muted2:#8f97a3;--border:#343941;--border2:#454b55;
+      --primary:#7ea8ff;--primary2:#96b8ff;--primarySoft:#26344f;
+      --ok:#5fca8a;--okSoft:#203329;--warn:#e1ac5a;--warnSoft:#362d20;--bad:#ef8181;--badSoft:#382426;
+      --shadow:0 1px 2px rgba(0,0,0,.12),0 10px 28px rgba(0,0,0,.14);
+    }
+
+    body {
+      font-family: 'Inter', 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 24px; position: relative; -webkit-tap-highlight-color: transparent;
+    }
+
+    .hidden { display: none !important; }
+    .btn {
+      min-height: var(--buttonVisual); display: inline-flex; align-items: center; justify-content: center;
+      gap: 8px; padding: 0 16px; border: 1px solid var(--border2); border-radius: 10px;
+      background: var(--surface); color: var(--text); font-size: 14px; font-weight: 600;
+      text-decoration: none; cursor: pointer; width: 100%; transition: all 0.2s;
+    }
+    .btn:active:not(:disabled) { transform: scale(0.985); }
+    .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .btn.soft { background: var(--surface2); border-color: var(--border); }
+    .btn.danger { background: var(--bad); border-color: var(--bad); color: #fff; }
+    .btn.primary:hover { background: var(--primary2); }
+
+    .field { display: grid; gap: 6px; margin-bottom: 16px; text-align: left; }
+    .field label { font-size: 13px; font-weight: 600; }
+    .control {
+      width: 100%; min-height: var(--control); padding: 0 12px; border: 1px solid var(--border2);
+      border-radius: 10px; background: var(--surface); color: var(--text); font-size: 15px; outline: 0;
+    }
+    .control:focus { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent); }
+
+    #app { width: 100%; display: flex; justify-content: center; align-items: center; }
+    .card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+      padding: 32px; box-shadow: var(--shadow); width: 100%; max-width: 420px; margin: 0 auto;
+    }
+
+    .btn-settings {
+      position: absolute; top: 24px; right: 24px; padding: 12px;
+      background: var(--surface); border: 1px solid var(--border2); border-radius: 50%;
+      color: var(--muted); cursor: pointer; box-shadow: var(--shadow); z-index: 20;
+    }
+    .btn-settings:hover { color: var(--primary); border-color: var(--primary); }
+
+    .text-center { text-align: center; }
+    .text-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+    .text-muted { color: var(--muted); font-size: 14px; }
+    .link { font-weight: 600; color: var(--primary); font-size: 13px; border: none; background: transparent; cursor: pointer; padding: 0; }
+    .link:hover { text-decoration: underline; }
+
+    /* Modal System */
+    .modal-overlay {
+      position: fixed; inset: 0; background: color-mix(in srgb, var(--bg) 70%, transparent);
+      backdrop-filter: blur(6px); z-index: 60; display: flex; align-items: center; justify-content: center;
+      padding: 16px; opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
+    }
+    .modal-overlay.active { opacity: 1; pointer-events: auto; }
+    .modal-content {
+      background: var(--surface); border-radius: 16px; box-shadow: var(--shadow);
+      border: 1px solid var(--border); width: 100%; max-width: 400px; overflow: hidden;
+      transform: scale(0.95) translateY(10px); opacity: 0; transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .modal-overlay.active .modal-content { transform: scale(1) translateY(0); opacity: 1; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid var(--border); background: var(--surface2); }
+    .modal-title { font-size: 18px; font-weight: 700; }
+    .modal-close { width: 32px; height: 32px; display: grid; place-items: center; background: var(--surface3); color: var(--muted); border-radius: 50%; border: none; cursor: pointer; }
+    .modal-body { padding: 24px; }
+    .flex-row { display: flex; gap: 12px; margin-top: 16px; }
+    .flex-1 { flex: 1; }
+
+    /* Toast */
+    .toast {
+      position: fixed; top: 24px; left: 50%; transform: translate(-50%, -150%);
+      background: var(--surface2); color: var(--text); padding: 12px 24px;
+      border-radius: 9999px; box-shadow: var(--shadow); border: 1px solid var(--border);
+      font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px;
+      z-index: 80; pointer-events: none; opacity: 0; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .toast.show { transform: translate(-50%, 0); opacity: 1; }
+    .toast.toast-error { background: var(--badSoft); color: var(--bad); border-color: var(--bad); }
+    .toast.toast-success { background: var(--okSoft); color: var(--ok); border-color: var(--ok); }
+
+    .radio-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
+    .radio-btn {
+      padding: 10px; border-radius: 8px; border: 1px solid var(--border2); text-align: center;
+      font-size: 13px; font-weight: 600; color: var(--muted); background: var(--surface); cursor: pointer; display: block;
+    }
+    .radio-label input[type="radio"] { position: absolute; opacity: 0; }
+    .radio-label input[type="radio"]:checked + .radio-btn {
+      background: var(--primarySoft); color: var(--primary); border-color: var(--primary);
+    }
+
+    .icon-circle {
+      width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center;
+      margin: 0 auto 20px; border: 1px solid;
+    }
+    .icon-circle.success { background: var(--okSoft); color: var(--ok); border-color: var(--ok); }
+    .icon-circle.warning { background: var(--warnSoft); color: var(--warn); border-color: var(--warn); }
+    .animate-fade-in { animation: fadeIn 0.25s ease-out forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
+  </style>
+
+  <!-- แทรก HMVC Core Framework -->
+  <script src="./hmvc-core.js"></script>
+</head>
+<body>
+
+  <!-- ปุ่มเปิด Settings -->
+  <button class="btn-settings" data-action="UIModule.openModal" data-modal="settingsModal" aria-label="Settings">
+    <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+  </button>
+
+  <!-- ระบบ Toast แจ้งเตือนกลาง -->
+  <div id="toastNotification" class="toast">
+    <span id="toastMessage">แจ้งเตือน</span>
+  </div>
+
+  <!-- HMVC Application Mount Point -->
+  <main id="app"></main>
+
+  <!-- ==================== MODALS ==================== -->
+  
+  <!-- Modal: Settings -->
+  <div id="settingsModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">ตั้งค่าระบบ</h3>
+        <button type="button" class="modal-close" data-action="UIModule.closeModal" data-modal="settingsModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <form data-action="SettingsModule.save">
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:8px;">หน่วงเวลาหน้ารอรับ (Delay)</label>
+          <div class="radio-grid">
+            <label class="radio-label"><input type="radio" name="loginDelay" value="0"><span class="radio-btn">0 วินาที</span></label>
+            <label class="radio-label"><input type="radio" name="loginDelay" value="1000"><span class="radio-btn">1 วินาที</span></label>
+            <label class="radio-label"><input type="radio" name="loginDelay" value="2000" checked><span class="radio-btn">2 วินาที</span></label>
+            <label class="radio-label"><input type="radio" name="loginDelay" value="3000"><span class="radio-btn">3 วินาที</span></label>
+          </div>
+          <label style="display:block; font-size:13px; font-weight:600; margin-bottom:8px;">ชุดธีม (Theme)</label>
+          <div class="radio-grid">
+            <label class="radio-label"><input type="radio" name="appTheme" value="light" checked><span class="radio-btn">สว่าง</span></label>
+            <label class="radio-label"><input type="radio" name="appTheme" value="dark"><span class="radio-btn">มืด</span></label>
+          </div>
+          <button type="submit" class="btn primary">บันทึกการตั้งค่า</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Forgot Password -->
+  <div id="forgotModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">รีเซ็ตรหัสผ่าน</h3>
+        <button type="button" class="modal-close" data-action="UIModule.closeModal" data-modal="forgotModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <form data-action="AuthModule.handleForgot">
+          <p class="text-muted" style="margin-bottom: 16px;">กรุณากรอกอีเมลของคุณเพื่อรับลิงก์ตั้งรหัสใหม่</p>
+          <div class="field">
+            <input type="email" name="email" required placeholder="name@domain.com" class="control">
+          </div>
+          <div class="flex-row">
+            <button type="button" class="btn soft flex-1" data-action="UIModule.closeModal" data-modal="forgotModal">ยกเลิก</button>
+            <button type="submit" class="btn primary flex-1">ส่งลิงก์</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Register -->
+  <div id="registerModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">สมัครสมาชิกใหม่</h3>
+        <button type="button" class="modal-close" data-action="UIModule.openModal" data-modal="confirmCancelModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <form data-action="AuthModule.handleRegister">
+          <div class="field">
+            <label>ชื่อผู้ใช้งาน</label>
+            <input type="text" name="username" required placeholder="ตั้งชื่อผู้ใช้งาน" class="control">
+          </div>
+          <div class="field">
+            <label>รหัสผ่าน</label>
+            <input type="password" name="password" required placeholder="อย่างน้อย 8 ตัวอักษร" class="control">
+          </div>
+          <div class="flex-row" style="margin-top: 24px;">
+            <button type="button" class="btn soft flex-1" data-action="UIModule.openModal" data-modal="confirmCancelModal">ยกเลิก</button>
+            <button type="submit" class="btn primary flex-1">สมัครสมาชิก</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Confirm Cancel Register -->
+  <div id="confirmCancelModal" class="modal-overlay" style="z-index: 70;">
+    <div class="modal-content text-center" style="padding: 24px;">
+      <div class="icon-circle warning">!</div>
+      <h3 class="text-title" style="font-size: 18px;">ยกเลิกการสมัครสมาชิก?</h3>
+      <p class="text-muted" style="margin-bottom: 20px;">ข้อมูลที่กรอกไว้จะไม่ถูกบันทึก ยืนยันหรือไม่?</p>
+      <div class="flex-row">
+        <button type="button" class="btn soft flex-1" data-action="UIModule.closeModal" data-modal="confirmCancelModal">แก้ไขต่อ</button>
+        <button type="button" class="btn danger flex-1" data-action="AuthModule.confirmCancelRegister">ยืนยันยกเลิก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== APPLICATION CODE ==================== -->
+  <script>
+    const { h } = HMVC.ui;
+
+    // Helper: Toast กลาง
+    let toastTimer;
+    function showToast(msg, type = 'success') {
+      clearTimeout(toastTimer);
+      const toast = document.getElementById('toastNotification');
+      toast.textContent = msg;
+      toast.className = `toast toast-${type} show`;
+      toastTimer = setTimeout(() => toast.classList.remove('show'), 2800);
+    }
+
+    // 1. UI Module: รับหน้าที่คุม Modal & Theme ทั่วระบบ
+    HMVC.module('UIModule', {
+      controller: {
+        openModal(ctx) {
+          const id = ctx.data.modal;
+          if (id) document.getElementById(id)?.classList.add('active');
+        },
+        closeModal(ctx) {
+          const id = ctx.data.modal;
+          if (id) document.getElementById(id)?.classList.remove('active');
+        }
+      }
+    });
+
+    // 2. Settings Module: บันทึกและดึงค่า Configuration ผ่าน HMVC Storage
+    HMVC.module('SettingsModule', {
+      create(context) {
+        return {
+          controller: {
+            save(actionCtx) {
+              const { loginDelay, appTheme } = actionCtx.values;
+              context.storage.set('login_delay', loginDelay || '2000');
+              context.storage.set('app_theme', appTheme || 'light');
+              document.documentElement.setAttribute('data-theme', appTheme);
+              showToast('บันทึกการตั้งค่าเรียบร้อย', 'success');
+              document.getElementById('settingsModal').classList.remove('active');
+            }
+          }
+        };
+      }
+    });
+
+    // 3. Auth Module: ควบคุม Logic การ Login, Logout, Register
+    HMVC.module('AuthModule', {
+      create(context) {
+        return {
+          controller: {
+            // View: หน้า Login
+            loginView() {
+              const rememberedUser = context.storage.get('remembered_user', 'admin');
+              return h('div', { class: 'card animate-fade-in' },
+                h('div', { class: 'text-center', style: 'margin-bottom: 24px;' },
+                  h('h2', { class: 'text-title', text: 'เข้าสู่ระบบ' }),
+                  h('p', { class: 'text-muted', text: 'ยินดีต้อนรับสู่ระบบสถาปัตยกรรม HMVC' })
+                ),
+                h('form', { 'data-action': 'AuthModule.submitLogin' },
+                  h('div', { class: 'field' },
+                    h('label', { text: 'ชื่อผู้ใช้งาน' }),
+                    h('input', { type: 'text', name: 'username', required: true, class: 'control', value: rememberedUser })
+                  ),
+                  h('div', { class: 'field' },
+                    h('label', { text: 'รหัสผ่าน' }),
+                    h('input', { type: 'password', name: 'password', required: true, class: 'control', value: 'password123' })
+                  ),
+                  h('div', { style: 'display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;' },
+                    h('label', { style: 'font-size:13px; color:var(--muted); display:flex; align-items:center; gap:6px; cursor:pointer;' },
+                      h('input', { type: 'checkbox', name: 'remember', checked: !!rememberedUser, style: 'accent-color:var(--primary);' }),
+                      h('span', { text: 'จดจำชื่อฉันไว้' })
+                    ),
+                    h('button', { type: 'button', class: 'link', 'data-action': 'UIModule.openModal', 'data-modal': 'forgotModal', text: 'ลืมรหัสผ่าน?' })
+                  ),
+                  h('button', { type: 'submit', class: 'btn primary', text: 'เข้าสู่ระบบ' })
+                ),
+                h('div', { style: 'margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); text-align: center;' },
+                  h('p', { class: 'text-muted', style: 'font-size: 13px;' },
+                    'ยังไม่มีบัญชี? ',
+                    h('button', { type: 'button', class: 'link', 'data-action': 'UIModule.openModal', 'data-modal': 'registerModal', text: 'สมัครสมาชิกใหม่' })
+                  )
+                )
+              );
+            },
+
+            // Action: ตรวจสอบข้อมูลล็อกอิน
+            submitLogin(actionCtx) {
+              const { username, password, remember } = actionCtx.values;
+              if (username === 'admin' && password === 'password123') {
+                if (remember) {
+                  context.storage.set('remembered_user', username);
+                } else {
+                  context.storage.remove('remembered_user');
+                }
+                
+                // ใช้ session ของ Core โดยตรง
+                context.session.set({ user: username, loggedAt: Date.now() });
+                context.navigate('/welcome');
+              } else {
+                showToast('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง', 'error');
+              }
+            },
+
+            // View: หน้า Dashboard/Welcome
+            welcomeView() {
+              const session = context.session.get();
+              const delay = context.storage.get('login_delay', '2000');
+
+              setTimeout(() => {
+                showToast(`หน่วงเวลาระบบ ${delay} ms สำเร็จ`, 'success');
+              }, Number(delay));
+
+              return h('div', { class: 'card text-center animate-fade-in' },
+                h('div', { class: 'icon-circle success' }, '✓'),
+                h('h2', { class: 'text-title', text: 'เข้าสู่ระบบสำเร็จ!' }),
+                h('p', { class: 'text-muted', text: `ยินดีต้อนรับคุณ ${session?.user || 'ผู้ใช้งาน'}` }),
+                h('p', { style: 'margin: 16px 0; font-size:13px; color:var(--muted2);', text: `สถานะ: ยืนยันตัวตนผ่าน Session Store แล้ว (Delay: ${delay}ms)` }),
+                h('button', { class: 'btn danger', 'data-action': 'AuthModule.logout', text: 'ออกจากระบบ' })
+              );
+            },
+
+            // Action: ออกจากระบบ
+            logout() {
+              context.session.clear();
+              showToast('ออกจากระบบเรียบร้อยแล้ว', 'success');
+              context.navigate('/login');
+            },
+
+            handleForgot(actionCtx) {
+              showToast('ระบบส่งอีเมลรีเซ็ตรหัสผ่านแล้ว', 'success');
+              document.getElementById('forgotModal').classList.remove('active');
+            },
+
+            handleRegister(actionCtx) {
+              showToast('สมัครสมาชิกสำเร็จแล้ว เข้าสู่ระบบได้ทันที', 'success');
+              document.getElementById('registerModal').classList.remove('active');
+            },
+
+            confirmCancelRegister() {
+              document.getElementById('confirmCancelModal').classList.remove('active');
+              document.getElementById('registerModal').classList.remove('active');
+            }
+          }
+        };
+      }
+    });
+
+    // 4. สร้าง instance และผูก Route Guard
+    const app = HMVC.create({
+      mount: '#app',
+      defaultRoute: '/login',
+      storagePrefix: 'auth-spa'
+    });
+
+    // Guard: ป้องกันไม่ให้คนไม่ล็อกอินเข้าสู่ /welcome
+    app.guard('requireAuth', (ctx) => {
+      if (!ctx.session.exists()) {
+        return { redirect: '/login' };
+      }
+      return true;
+    });
+
+    // Guard: ป้องกันไม่ให้คนที่ล็อกอินแล้วกลับไปหน้า /login
+    app.guard('guestOnly', (ctx) => {
+      if (ctx.session.exists()) {
+        return { redirect: '/welcome' };
+      }
+      return true;
+    });
+
+    // กำหนด Routes
+    app.route('/login', { module: 'AuthModule', action: 'loginView', guards: ['guestOnly'] });
+    app.route('/welcome', { module: 'AuthModule', action: 'welcomeView', guards: ['requireAuth'] });
+
+    // รัน Application
+    document.addEventListener('DOMContentLoaded', () => {
+      // โหลดธีมตั้งต้นจาก storage
+      const savedTheme = app.storage.get('app_theme', 'light');
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      
+      app.start();
+    });
+  </script>
+</body>
+</html>
